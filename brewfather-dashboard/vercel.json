@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/brewfather.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/readings.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/brewfather",
+      "dest": "/api/brewfather.js"
+    },
+    {
+      "src": "/api/readings",
+      "dest": "/api/readings.js"
+    }
+  ]
+}
+

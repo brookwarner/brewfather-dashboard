@@ -1,0 +1,22 @@
+{
+  "name": "brewfather-dashboard",
+  "version": "1.0.0",
+  "description": "A beautiful dashboard for monitoring Brewfather fermenting batches",
+  "main": "api/brewfather.js",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "start": "python3 -m http.server 8000"
+  },
+  "keywords": [
+    "brewfather",
+    "brewing",
+    "dashboard",
+    "homebrewing",
+    "fermentation"
+  ],
+  "author": "Brook Warner",
+  "license": "MIT"
+}
+
+
+

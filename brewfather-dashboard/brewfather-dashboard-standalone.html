@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brewfather Dashboard 🍺</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 20px;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.5em;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ff4444;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .info-bar {
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .batches-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .batch-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .batch-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .batch-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .batch-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .batch-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .batch-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .batch-no {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .status-badge {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .recipe-info {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .recipe-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .recipe-style {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .current-readings {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .reading-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .reading-card.sg {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+
+        .reading-label {
+            font-size: 0.8em;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .reading-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .brew-date {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .data-timestamp {
+            color: #999;
+            font-size: 0.85em;
+            margin-top: 10px;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .charts-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .chart-container {
+            margin-bottom: 25px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .chart-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+
+        .no-data {
+            text-align: center;
+            color: white;
+            font-size: 1.3em;
+            padding: 60px 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .no-chart-data {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-style: italic;
+        }
+
+        .refresh-btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .loading-charts {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            
+            .batches-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .info-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .chart-wrapper {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍺 Brewfather Dashboard</h1>
+            <p class="subtitle">Currently Fermenting Batches</p>
+        </header>
+
+        <div id="app">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading brewing data...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // STANDALONE VERSION - Fetches directly from Brewfather API
+        // ⚠️ IMPORTANT: Replace these with your actual Brewfather API credentials
+        // Get them from: https://web.brewfather.app/tabs/settings (API section)
+        
+        const BREWFATHER_USER_ID = 'YOUR_USER_ID_HERE';
+        const BREWFATHER_API_KEY = 'YOUR_API_KEY_HERE';
+        
+        // Chart instances storage
+        const chartInstances = {};
+
+        async function fetchBrewfatherData() {
+            try {
+                const auth = btoa(`${BREWFATHER_USER_ID}:${BREWFATHER_API_KEY}`);
+                const url = 'https://api.brewfather.app/v1/batches?status=Fermenting&include=estimatedFg,estimatedOg,measuredOg,measuredFg,temp';
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Basic ${auth}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const batches = await response.json();
+                
+                // Process the batches
+                const processedBatches = batches.map(batch => ({
+                    id: batch._id,
+                    name: batch.name,
+                    batchNo: batch.batchNo,
+                    status: batch.status,
+                    brewDate: batch.brewDate,
+                    estimatedOg: batch.estimatedOg,
+                    estimatedFg: batch.estimatedFg,
+                    measuredOg: batch.measuredOg,
+                    measuredFg: batch.measuredFg,
+                    temp: batch.measuredBatchTemp || batch.temp,
+                    recipe: batch.recipe ? {
+                        name: batch.recipe.name,
+                        style: batch.recipe.style ? batch.recipe.style.name : null
+                    } : null
+                }));
+                
+                return {
+                    batches: processedBatches,
+                    count: processedBatches.length,
+                    fetchedAt: new Date().toISOString()
+                };
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                throw error;
+            }
+        }
+
+        async function fetchBatchReadings(batchId, forceRefresh = false) {
+            try {
+                // Check localStorage cache first (unless force refresh)
+                const cacheKey = `readings_${batchId}`;
+                
+                if (!forceRefresh) {
+                    const cached = localStorage.getItem(cacheKey);
+                    
+                    if (cached) {
+                        const { data, timestamp } = JSON.parse(cached);
+                        const age = Date.now() - timestamp;
+                        // Cache for 5 minutes
+                        if (age < 5 * 60 * 1000) {
+                            console.log(`Using cached readings for ${batchId} (${Math.round(age/1000)}s old)`);
+                            return data;
+                        }
+                    }
+                }
+
+                const auth = btoa(`${BREWFATHER_USER_ID}:${BREWFATHER_API_KEY}`);
+                const url = `https://api.brewfather.app/v1/batches/${batchId}/readings`;
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Basic ${auth}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    console.error(`Failed to fetch readings for batch ${batchId}`);
+                    return [];
+                }
+                
+                const readings = await response.json();
+                
+                // Cache the result
+                localStorage.setItem(cacheKey, JSON.stringify({
+                    data: readings,
+                    timestamp: Date.now()
+                }));
+                
+                return readings;
+            } catch (error) {
+                console.error(`Error fetching readings for batch ${batchId}:`, error);
+                return [];
+            }
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        function formatTemp(temp) {
+            if (temp === undefined || temp === null) return 'N/A';
+            return `${temp.toFixed(1)}°C`;
+        }
+
+        function formatGravity(gravity) {
+            if (gravity === undefined || gravity === null) return 'N/A';
+            return gravity.toFixed(3);
+        }
+
+        function createCombinedChart(canvasId, readings, batch) {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            // Destroy existing chart if it exists
+            if (chartInstances[canvasId]) {
+                chartInstances[canvasId].destroy();
+            }
+
+            // Sort readings by time
+            const sortedReadings = [...readings].sort((a, b) => 
+                (a.time || 0) - (b.time || 0)
+            );
+
+            // Extract temperature data
+            const tempData = sortedReadings
+                .filter(r => r.temp !== undefined && r.temp !== null && r.time)
+                .map(r => ({
+                    x: new Date(r.time),
+                    y: r.temp
+                }));
+
+            // Extract gravity data
+            const gravityData = sortedReadings
+                .filter(r => r.sg !== undefined && r.sg !== null && r.time)
+                .map(r => ({
+                    x: new Date(r.time),
+                    y: r.sg
+                }));
+
+            if (tempData.length === 0 && gravityData.length === 0) {
+                return null;
+            }
+
+            const datasets = [];
+
+            // Add temperature dataset
+            if (tempData.length > 0) {
+                datasets.push({
+                    label: 'Temperature (°C)',
+                    data: tempData,
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.05)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointHoverBorderWidth: 2,
+                    pointHoverBackgroundColor: '#667eea',
+                    pointHoverBorderColor: '#fff',
+                    yAxisID: 'y-temp'
+                });
+            }
+
+            // Add gravity dataset
+            if (gravityData.length > 0) {
+                datasets.push({
+                    label: 'Specific Gravity',
+                    data: gravityData,
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.05)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointHoverBorderWidth: 2,
+                    pointHoverBackgroundColor: '#e74c3c',
+                    pointHoverBorderColor: '#fff',
+                    yAxisID: 'y-sg'
+                });
+
+                // Add OG reference line
+                if (batch.estimatedOg && gravityData.length > 0) {
+                    datasets.push({
+                        label: 'Target OG',
+                        data: [
+                            { x: gravityData[0].x, y: batch.estimatedOg },
+                            { x: gravityData[gravityData.length - 1].x, y: batch.estimatedOg }
+                        ],
+                        borderColor: 'rgba(231, 76, 60, 0.3)',
+                        borderWidth: 2,
+                        borderDash: [8, 4],
+                        pointRadius: 0,
+                        fill: false,
+                        yAxisID: 'y-sg',
+                        tension: 0
+                    });
+                }
+
+                // Add FG reference line
+                if (batch.estimatedFg && gravityData.length > 0) {
+                    datasets.push({
+                        label: 'Target FG',
+                        data: [
+                            { x: gravityData[0].x, y: batch.estimatedFg },
+                            { x: gravityData[gravityData.length - 1].x, y: batch.estimatedFg }
+                        ],
+                        borderColor: 'rgba(52, 152, 219, 0.4)',
+                        borderWidth: 2,
+                        borderDash: [8, 4],
+                        pointRadius: 0,
+                        fill: false,
+                        yAxisID: 'y-sg',
+                        tension: 0
+                    });
+                }
+            }
+
+            const scales = {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'day',
+                        displayFormats: {
+                            day: 'MMM d'
+                        }
+                    },
+                    grid: {
+                        display: true,
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            };
+
+            // Add temperature Y-axis
+            if (tempData.length > 0) {
+                scales['y-temp'] = {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Temperature (°C)',
+                        color: '#667eea',
+                        font: {
+                            size: 12,
+                            weight: '600'
+                        }
+                    },
+                    ticks: {
+                        color: '#667eea',
+                        font: {
+                            size: 11
+                        },
+                        padding: 8
+                    },
+                    grid: {
+                        color: 'rgba(102, 126, 234, 0.1)',
+                        drawBorder: false
+                    },
+                    beginAtZero: false
+                };
+            }
+
+            // Add gravity Y-axis
+            if (gravityData.length > 0) {
+                scales['y-sg'] = {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Specific Gravity',
+                        color: '#e74c3c',
+                        font: {
+                            size: 12,
+                            weight: '600'
+                        }
+                    },
+                    ticks: {
+                        color: '#e74c3c',
+                        font: {
+                            size: 11
+                        },
+                        padding: 8,
+                        callback: function(value) {
+                            return value.toFixed(3);
+                        }
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                        drawBorder: false
+                    },
+                    beginAtZero: false
+                };
+            }
+
+            chartInstances[canvasId] = new Chart(ctx, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                },
+                                boxWidth: 8,
+                                boxHeight: 8
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: {
+                                size: 13,
+                                weight: '600'
+                            },
+                            bodyFont: {
+                                size: 12
+                            },
+                            displayColors: true,
+                            boxPadding: 6,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.dataset.yAxisID === 'y-temp') {
+                                        label += context.parsed.y.toFixed(1) + '°C';
+                                    } else if (context.dataset.yAxisID === 'y-sg') {
+                                        label += context.parsed.y.toFixed(3);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: scales
+                }
+            });
+        }
+
+        async function renderBatchCharts(batch) {
+            const chartCanvasId = `chart-${batch.id}`;
+
+            // Show loading state
+            const chartContainer = document.getElementById(`chart-container-${batch.id}`);
+            
+            if (chartContainer) chartContainer.innerHTML = '<div class="loading-charts">Loading chart data...</div>';
+
+            // Fetch readings (with force refresh if needed)
+            const readings = await fetchBatchReadings(batch.id, forceRefreshReadings);
+
+            if (!readings || readings.length === 0) {
+                if (chartContainer) chartContainer.innerHTML = '<div class="no-chart-data">No readings available</div>';
+                return;
+            }
+
+            // Update current readings display if available
+            const latestReadingWithSg = [...readings]
+                .filter(r => r.sg !== undefined && r.sg !== null)
+                .sort((a, b) => (b.time || 0) - (a.time || 0))[0];
+            
+            const latestReadingWithTemp = [...readings]
+                .filter(r => r.temp !== undefined && r.temp !== null)
+                .sort((a, b) => (b.time || 0) - (a.time || 0))[0];
+            
+            if (latestReadingWithSg && latestReadingWithSg.sg) {
+                const currentSgElement = document.getElementById(`current-sg-${batch.id}`);
+                if (currentSgElement) {
+                    currentSgElement.textContent = latestReadingWithSg.sg.toFixed(3);
+                }
+            }
+            
+            if (latestReadingWithTemp && latestReadingWithTemp.temp) {
+                const currentTempElement = document.getElementById(`current-temp-${batch.id}`);
+                if (currentTempElement) {
+                    currentTempElement.textContent = formatTemp(latestReadingWithTemp.temp);
+                }
+            }
+            
+            // Update the readings timestamp
+            const readingsTimestamp = document.getElementById(`readings-timestamp-${batch.id}`);
+            if (readingsTimestamp && latestReadingWithSg && latestReadingWithSg.time) {
+                const lastUpdate = new Date(latestReadingWithSg.time);
+                const now = new Date();
+                const diffMinutes = Math.round((now - lastUpdate) / (1000 * 60));
+                
+                let timeAgo;
+                if (diffMinutes < 1) {
+                    timeAgo = 'just now';
+                } else if (diffMinutes < 60) {
+                    timeAgo = `${diffMinutes}m ago`;
+                } else if (diffMinutes < 1440) {
+                    const hours = Math.floor(diffMinutes / 60);
+                    timeAgo = `${hours}h ago`;
+                } else {
+                    const days = Math.floor(diffMinutes / 1440);
+                    timeAgo = `${days}d ago`;
+                }
+                
+                readingsTimestamp.textContent = `Last reading: ${timeAgo}`;
+            }
+
+            // Create combined chart
+            const hasData = readings.some(r => 
+                (r.temp !== undefined && r.temp !== null) || 
+                (r.sg !== undefined && r.sg !== null)
+            );
+            
+            if (hasData && chartContainer) {
+                chartContainer.innerHTML = `<canvas id="${chartCanvasId}"></canvas>`;
+                setTimeout(() => createCombinedChart(chartCanvasId, readings, batch), 100);
+            } else if (chartContainer) {
+                chartContainer.innerHTML = '<div class="no-chart-data">No temperature or gravity readings available</div>';
+            }
+        }
+
+        function renderBatch(batch) {
+            return `
+                <div class="batch-card">
+                    <div class="batch-header">
+                        <div class="batch-name">${batch.name || 'Unnamed Batch'}</div>
+                        <div class="batch-meta">
+                            <span class="batch-no">Batch #${batch.batchNo || 'N/A'}</span>
+                            <span class="status-badge">${batch.status || 'Unknown'}</span>
+                        </div>
+                    </div>
+
+                    ${batch.recipe ? `
+                        <div class="recipe-info">
+                            <div class="recipe-name">📋 ${batch.recipe.name}</div>
+                            ${batch.recipe.style ? `<div class="recipe-style">${batch.recipe.style}</div>` : ''}
+                        </div>
+                    ` : ''}
+
+                    <div class="current-readings">
+                        <div class="reading-card">
+                            <div class="reading-label">🌡️ Current Temp</div>
+                            <div class="reading-value" id="current-temp-${batch.id}">Loading...</div>
+                        </div>
+                        <div class="reading-card sg">
+                            <div class="reading-label">📊 Current SG</div>
+                            <div class="reading-value" id="current-sg-${batch.id}">Loading...</div>
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat">
+                            <div class="stat-label">Est. OG</div>
+                            <div class="stat-value">${formatGravity(batch.estimatedOg)}</div>
+                        </div>
+                        
+                        <div class="stat">
+                            <div class="stat-label">Est. FG</div>
+                            <div class="stat-value">${formatGravity(batch.estimatedFg)}</div>
+                        </div>
+                        
+                        <div class="stat">
+                            <div class="stat-label">Measured OG</div>
+                            <div class="stat-value">${formatGravity(batch.measuredOg)}</div>
+                        </div>
+                        
+                        <div class="stat">
+                            <div class="stat-label">Measured FG</div>
+                            <div class="stat-value">${formatGravity(batch.measuredFg)}</div>
+                        </div>
+                    </div>
+
+                    ${batch.brewDate ? `
+                        <div class="brew-date">
+                            🗓️ Brewed: ${formatDate(batch.brewDate)}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="data-timestamp" id="readings-timestamp-${batch.id}">
+                        Loading readings...
+                    </div>
+
+                    <div class="charts-section">
+                        <div class="chart-container">
+                            <div class="chart-title">📈 Fermentation Progress</div>
+                            <div class="chart-wrapper" id="chart-container-${batch.id}">
+                                <div class="loading-charts">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderApp(data) {
+            const app = document.getElementById('app');
+            
+            if (data.error) {
+                app.innerHTML = `
+                    <div class="error">
+                        <h2>❌ Error Loading Data</h2>
+                        <p>${data.message || 'Failed to fetch brewing data'}</p>
+                        <button class="refresh-btn" onclick="loadData(true)" style="margin-top: 15px;">
+                            Try Again
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const { batches, count, fetchedAt } = data;
+
+            let infoBar = `
+                <div class="info-bar">
+                    <div class="info-item">
+                        <span>📊 <strong>${count || 0}</strong> batches fermenting</span>
+                    </div>
+                    ${fetchedAt ? `
+                        <div class="info-item">
+                            <span>🕐 ${formatDate(fetchedAt)} ${new Date(fetchedAt).toLocaleTimeString()}</span>
+                        </div>
+                    ` : ''}
+                    <button class="refresh-btn" onclick="loadData(true)">
+                        🔄 Refresh
+                    </button>
+                </div>
+            `;
+
+            if (!batches || batches.length === 0) {
+                app.innerHTML = infoBar + `
+                    <div class="no-data">
+                        <p>🍺 No batches currently fermenting</p>
+                        <p style="font-size: 0.9em; margin-top: 10px; opacity: 0.8;">
+                            Time to start a new brew!
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            const batchesHTML = batches.map(batch => renderBatch(batch)).join('');
+            
+            app.innerHTML = infoBar + `
+                <div class="batches-grid">
+                    ${batchesHTML}
+                </div>
+            `;
+
+            // Load charts for each batch
+            batches.forEach(batch => {
+                setTimeout(() => renderBatchCharts(batch), 100);
+            });
+        }
+
+        let forceRefreshReadings = false;
+
+        async function loadData(forceRefresh = false) {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading brewing data...</p>
+                </div>
+            `;
+
+            // Clear existing chart instances
+            Object.values(chartInstances).forEach(chart => chart.destroy());
+            Object.keys(chartInstances).forEach(key => delete chartInstances[key]);
+
+            // Set force refresh flag for readings
+            forceRefreshReadings = forceRefresh;
+
+            try {
+                const data = await fetchBrewfatherData();
+                renderApp(data);
+            } catch (error) {
+                renderApp({
+                    error: true,
+                    message: error.message
+                });
+            } finally {
+                forceRefreshReadings = false;
+            }
+        }
+
+        // Load data on page load
+        loadData();
+    </script>
+</body>
+</html>
