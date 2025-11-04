@@ -2,6 +2,27 @@
 
 A beautiful, real-time dashboard for monitoring your Brewfather fermenting batches.
 
+## 📸 Screenshots
+
+### Dashboard Views
+
+**Light Theme**
+![Light Theme Dashboard](Screenshot%202025-11-04%20at%2014.02.27.png)
+
+**Dark Theme (Brewfather)**
+![Dark Theme Dashboard](Screenshot%202025-11-04%20at%2014.02.37.png)
+
+**Multi-Status View with Archived Batches**
+![Multi-Status View](Screenshot%202025-11-04%20at%2014.02.56.png)
+
+### Setup Wizard
+
+**Production Mode Setup**
+![Setup - Production Mode](Screenshot%202025-11-04%20at%2014.03.27.png)
+
+**Standalone Mode Setup**
+![Setup - Standalone Mode](Screenshot%202025-11-04%20at%2014.03.32.png)
+
 ## ⚡ First Time Setup
 
 **New users:** Open `setup.html` in your browser for a guided setup wizard! 
