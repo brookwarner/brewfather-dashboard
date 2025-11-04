@@ -2,10 +2,10 @@
   "name": "brewfather-dashboard",
   "version": "1.0.0",
   "description": "A beautiful dashboard for monitoring Brewfather fermenting batches",
-  "main": "api/brewfather.js",
+  "main": "server.js",
   "scripts": {
-    "dev": "python3 -m http.server 8000",
-    "start": "python3 -m http.server 8000"
+    "dev": "node server.js",
+    "start": "node server.js"
   },
   "keywords": [
     "brewfather",
@@ -15,7 +15,10 @@
     "fermentation"
   ],
   "author": "Brook Warner",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  }
 }
 
 

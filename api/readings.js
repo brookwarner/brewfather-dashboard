@@ -107,6 +107,18 @@ module.exports = async (req, res) => {
       throw new Error(`Brewfather API error: HTTP ${response.statusCode}`);
     }
     
+    // Log first reading to see available fields
+    if (response.data && response.data.length > 0) {
+      console.log('🔍 Raw reading data sample:');
+      console.log('   Available fields:', Object.keys(response.data[0]));
+      if (response.data[0].comment) {
+        console.log('   Comment:', response.data[0].comment);
+      }
+      if (response.data[0].deviceType) {
+        console.log('   Device type:', response.data[0].deviceType);
+      }
+    }
+    
     const result = {
       readings: response.data,
       count: response.data.length,

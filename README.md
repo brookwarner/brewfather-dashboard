@@ -2,10 +2,20 @@
 
 A beautiful, real-time dashboard for monitoring your Brewfather fermenting batches.
 
+## ⚡ First Time Setup
+
+**New users:** Open `setup.html` in your browser for a guided setup wizard! 
+
+The setup page will help you:
+- Get your Brewfather API credentials
+- Configure them for your chosen mode (Production or Standalone)
+- Test your credentials before saving
+
 ## Files
 
 - **`brewfather-dashboard.html`** - Production version that uses the serverless API (recommended)
 - **`brewfather-dashboard-standalone.html`** - Standalone version for local testing only
+- **`setup.html`** - Setup wizard for first-time configuration
 - **`api/brewfather.js`** - Serverless function for batches endpoint
 - **`api/readings.js`** - Serverless function for readings endpoint
 - **`.env.example`** - Template for environment variables
@@ -45,9 +55,32 @@ BREWFATHER_API_KEY=your_actual_api_key
 2. Navigate to **Environment Variables**
 3. Add the same variables as above
 
-### Step 3: Deploy
+### Step 3: Run Locally or Deploy
 
-#### Option A: Deploy to Vercel (Recommended)
+#### Option A: Run Locally with Node.js
+
+Simple local development server that runs the production version:
+
+```bash
+# Install dependencies
+npm install
+
+# Make sure you have a .env file with your credentials
+# (Copy .env.example to .env and add your keys)
+
+# Start the server
+npm run dev
+
+# Open in browser: http://localhost:3000
+```
+
+This will:
+- Run your serverless functions locally
+- Load environment variables from `.env`
+- Serve the production HTML file
+- Keep credentials secure (not exposed in browser)
+
+#### Option B: Deploy to Vercel (Recommended for Production)
 
 ```bash
 # Install Vercel CLI (if not already installed)
@@ -59,7 +92,7 @@ vercel
 # Follow the prompts and set environment variables when asked
 ```
 
-#### Option B: Deploy to Netlify
+#### Option C: Deploy to Netlify
 
 ```bash
 # Install Netlify CLI (if not already installed)
@@ -71,9 +104,11 @@ netlify deploy
 # Follow the prompts
 ```
 
-#### Option C: Local Testing (Standalone Version)
+#### Option D: Local Testing (Standalone Version - No Server Required)
 
 ⚠️ **For testing only - exposes credentials in browser!**
+
+**Note:** The standalone version requires hardcoded credentials because browser JavaScript cannot access environment variables. Environment variables only work with server-side code (Node.js). For secure credential management, use Option A or B above.
 
 1. Edit `brewfather-dashboard-standalone.html`
 2. Replace `YOUR_USER_ID_HERE` and `YOUR_API_KEY_HERE` with your actual credentials
@@ -91,6 +126,15 @@ open brewfather-dashboard-standalone.html
 - Smooth animations
 - Mobile-friendly
 
+🎨 **Theme Switcher**
+- **Default Theme**: Purple gradient with modern aesthetics
+- **Brewfather Theme**: Dark theme matching the native Brewfather app (signature orange/amber colors)
+- **Dark Theme**: Sleek blue-toned dark mode
+- **Light Theme**: Clean, bright interface
+- Collapsible dropdown menu (minimal space when closed)
+- Dynamic chart color updates when switching themes
+- Theme preference persists across sessions using localStorage
+
 📊 **Real-time Data**
 - Current batch status
 - Temperature monitoring
@@ -104,6 +148,7 @@ open brewfather-dashboard-standalone.html
 - Target OG/FG reference lines overlaid on the chart
 - Historical readings visualization using Chart.js
 - Prominent display of current temperature and SG at the top of each batch card
+- Chart colors automatically adapt to selected theme
 
 ⚡ **Performance**
 - Smart caching (1 hour for batches, 5 minutes for readings)

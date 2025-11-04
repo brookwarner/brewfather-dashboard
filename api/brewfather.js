@@ -4,11 +4,9 @@
 const https = require('https');
 
 // In-memory cache (1 hour for brewing data)
-let cache = {
-  data: null,
-  timestamp: null,
-  ttl: 1 * 60 * 60 * 1000 // 1 hour in milliseconds
-};
+// Cache is now status-aware - each status gets its own cache entry
+const cache = {};
+const CACHE_TTL = 1 * 60 * 60 * 1000; // 1 hour in milliseconds
 
 function fetchBrewfatherBatches(userId, apiKey, params = {}) {
   return new Promise((resolve, reject) => {
@@ -62,6 +60,18 @@ function processBatches(batches) {
     return null;
   }
   
+  // Log first batch to see all available fields
+  if (batches.length > 0) {
+    console.log('🔍 Raw batch data sample:');
+    console.log('   Available fields:', Object.keys(batches[0]));
+    if (batches[0].devices) {
+      console.log('   Devices info:', batches[0].devices);
+    }
+    if (batches[0].streamId || batches[0].streamName) {
+      console.log('   Stream info:', { id: batches[0].streamId, name: batches[0].streamName });
+    }
+  }
+  
   return batches.map(batch => ({
     id: batch._id,
     name: batch.name,
@@ -76,7 +86,11 @@ function processBatches(batches) {
     recipe: batch.recipe ? {
       name: batch.recipe.name,
       style: batch.recipe.style ? batch.recipe.style.name : null
-    } : null
+    } : null,
+    // Include device/stream information if available
+    devices: batch.devices || null,
+    streamId: batch.streamId || null,
+    streamName: batch.streamName || null
   }));
 }
 
@@ -97,16 +111,32 @@ module.exports = async (req, res) => {
   }
   
   try {
-    // Check cache
+    // Allow query params to override defaults
+    const params = {
+      status: req.query.status || 'Fermenting',
+      include: req.query.include || 'estimatedFg,estimatedOg,measuredOg,temp'
+    };
+    
+    // Check if this is a force refresh request
+    const forceRefresh = req.query._refresh !== undefined;
+    
+    // Create cache key based on status
+    const cacheKey = `batches_${params.status}`;
+    
+    // Check cache (skip if force refresh)
     const now = Date.now();
-    if (cache.data && cache.timestamp && (now - cache.timestamp) < cache.ttl) {
-      console.log('✅ Returning cached Brewfather data');
+    if (!forceRefresh && cache[cacheKey] && cache[cacheKey].timestamp && (now - cache[cacheKey].timestamp) < CACHE_TTL) {
+      console.log(`✅ Returning cached Brewfather data for status: ${params.status}`);
       res.status(200).json({
-        ...cache.data,
+        ...cache[cacheKey].data,
         cached: true,
-        cache_age_minutes: Math.round((now - cache.timestamp) / (1000 * 60))
+        cache_age_minutes: Math.round((now - cache[cacheKey].timestamp) / (1000 * 60))
       });
       return;
+    }
+    
+    if (forceRefresh) {
+      console.log(`🔄 Force refresh requested - bypassing cache for status: ${params.status}`);
     }
     
     // Get credentials from environment variables
@@ -120,12 +150,6 @@ module.exports = async (req, res) => {
       });
       return;
     }
-    
-    // Allow query params to override defaults
-    const params = {
-      status: req.query.status || 'Fermenting',
-      include: req.query.include || 'estimatedFg,estimatedOg,measuredOg,temp'
-    };
     
     console.log('🔄 Fetching batches from Brewfather API...');
     console.log(`   Status: ${params.status}`);
@@ -151,11 +175,13 @@ module.exports = async (req, res) => {
       fetchedAt: new Date().toISOString()
     };
     
-    // Cache the result
-    cache.data = result;
-    cache.timestamp = now;
+    // Cache the result with status-specific key
+    cache[cacheKey] = {
+      data: result,
+      timestamp: now
+    };
     
-    console.log(`✅ Fetched ${processedData.length} batches`);
+    console.log(`✅ Fetched ${processedData.length} batches with status: ${params.status}`);
     
     res.status(200).json({
       ...result,
