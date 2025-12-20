@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  brewfather-dashboard:
+    build: . # you can simply use a github repo url here like 'https://github.com/brookwarner/brewfather-dashboard' if you don't want/need to clone the repo
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./.env:/app/.env:ro
+
+    restart: unless-stopped
