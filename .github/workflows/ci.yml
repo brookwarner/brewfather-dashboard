@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Install & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+
+      - name: Syntax check
+        run: find . -name "*.js" -not -path "./node_modules/*" -print0 | xargs -0 -r -n1 node --check
+
+      - name: Boot smoke test
+        run: |
+          [ -f .env.example ] && [ ! -f .env ] && cp .env.example .env || true
+          PORT=3999 node server.js & PID=$!
+          sleep 6
+          if kill -0 $PID 2>/dev/null; then
+            echo "server booted OK"; kill $PID
+          else
+            echo "::error::server.js failed to boot"; exit 1
+          fi
