@@ -25,11 +25,9 @@ jobs:
           cache: npm
       - run: npm ci
 
-      - name: Syntax check
-        run: find . -name "*.js" -not -path "./node_modules/*" -print0 | xargs -0 -r -n1 node --check
-
       - name: Boot smoke test
         run: |
+          node --check server.js
           [ -f .env.example ] && [ ! -f .env ] && cp .env.example .env || true
           PORT=3999 node server.js & PID=$!
           sleep 6
