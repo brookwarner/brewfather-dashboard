@@ -40,6 +40,8 @@ The setup page will help you:
 - **`api/brewfather.js`** - Serverless function for batches endpoint
 - **`api/readings.js`** - Serverless function for readings endpoint
 - **`.env.example`** - Template for environment variables
+- **`Dockerfile`** - Docker container configuration
+- **`docker-compose.yml`** - Docker Compose setup for easy deployment
 
 ## 🚀 Quick Start
 
@@ -125,11 +127,57 @@ netlify deploy
 # Follow the prompts
 ```
 
-#### Option D: Local Testing (Standalone Version - No Server Required)
+#### Option D: Run with Docker
+
+Run the dashboard in a Docker container for easy deployment and isolation:
+
+**Using Docker Compose (Recommended):**
+
+```bash
+# Make sure you have a .env file with your credentials
+# (Copy .env.example to .env and add your keys)
+
+# Build and start the container
+docker-compose up -d
+
+# Open in browser: http://localhost:3000
+
+# To stop the container
+docker-compose down
+```
+
+**Using Docker directly:**
+
+```bash
+# Build the image
+docker build -t brewfather-dashboard .
+
+# Run the container (mounting your .env file)
+docker run -d \
+  --name brewfather-dashboard \
+  -p 3000:3000 \
+  -v "$(pwd)/.env:/app/.env:ro" \
+  brewfather-dashboard
+
+# Open in browser: http://localhost:3000
+
+# To stop the container
+docker stop brewfather-dashboard
+docker rm brewfather-dashboard
+```
+
+This will:
+- Run the dashboard in a secure, isolated container
+- Load environment variables from your `.env` file
+- Expose the service on port 3000
+- Keep credentials secure (not exposed in browser)
+- Include health checks for container monitoring
+
+#### Option E: Local Testing (Standalone Version - No Server Required)
 
 ⚠️ **For testing only - exposes credentials in browser!**
 
-**Note:** The standalone version requires hardcoded credentials because browser JavaScript cannot access environment variables. Environment variables only work with server-side code (Node.js). For secure credential management, use Option A or B above.
+**Note:** The standalone version requires hardcoded credentials because browser JavaScript cannot access environment variables. Environment variables only work with server-side code (Node.js). For secure credential management, use Option A, B, or D above.
 
 1. Edit `brewfather-dashboard-standalone.html`
 2. Replace `YOUR_USER_ID_HERE` and `YOUR_API_KEY_HERE` with your actual credentials
@@ -202,10 +250,11 @@ Example:
 ## Security
 
 🔒 **For Production:**
-- Use `brewfather-dashboard.html` (requires serverless functions)
-- Store credentials in environment variables on your deployment platform
+- Use `brewfather-dashboard.html` (requires serverless functions or Node.js server)
+- Store credentials in environment variables on your deployment platform or `.env` file
 - API credentials never exposed to the browser
 - Never commit your `.env` file to git
+- Docker containers provide additional isolation and security
 
 ⚠️ **For Local Testing Only:**
 - `brewfather-dashboard-standalone.html` requires manual credential entry
@@ -217,7 +266,8 @@ Example:
 - Vanilla JavaScript
 - HTML5 + CSS3
 - Brewfather API v1
-- Node.js (for serverless function)
+- Node.js (for serverless functions and local server)
+- Docker (for containerized deployment)
 
 ## License
 
